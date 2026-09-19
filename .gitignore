@@ -1,0 +1,17 @@
+# data & artifacts (per blueprint §6: no corpus/checkpoint is ever committed)
+data/
+out/
+runs/
+*.gguf
+*.jsonl.zst
+
+# python
+__pycache__/
+*.pyc
+.venv/
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
+
+# os
+.DS_Store

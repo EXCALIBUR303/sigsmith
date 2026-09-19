@@ -1,0 +1,240 @@
+{
+  "chosen_domain": "SIGSMITH \u2014 schema-conditioned Sigma detection-rule synthesis for air-gapped SOCs (English behaviour description + per-deployment telemetry schema card \u2192 executable Sigma rule)",
+  "one_line_pitch": "A 1.7B Apache-2.0 model, QLoRA-tuned and shipped as a pinned GGUF, that reads a deployment's own telemetry schema card and compiles an English threat-behaviour description into a Sigma detection rule which the harness then *executes* against labelled malicious events and mutation-generated near-miss benign twins \u2014 so correctness is \"fires on the attack AND stays silent on the decoy\", never text similarity.",
+  "why_this_one": "## Scored against the five gates\n\n| Gate | Verdict | Evidence |\n|---|---|---|\n| (a) Offline SLM strictly dominates | **Absolute** | In a SCIF / CUI / ITAR enclave there is no egress at any price tier \u2014 the API is not an expensive option, it is a physically absent one. Two independent reinforcements: the **schema card is itself disclosure-sensitive** (a precise list of what telemetry you collect is an adversary's map of your gaps), and accredited environments require a re-runnable artifact \u2014 a GGUF with a recorded SHA-256, a pinned llama.cpp build and `--temp 0 --seed 1337` survives an ATO and a post-incident review; an endpoint that changed last Tuesday does not. Detection content is versioned and shipped to production sensors, so silent generator drift corrupts a rule corpus with no changelog. |\n| (b) Free data for one engineer | **Yes, fully public** | SigmaHQ rules (DRL 1.1), MITRE ATT&CK STIX, Atomic Red Team (MIT), OTRF Security-Datasets / EVTX-ATTACK-SAMPLES, plus Sysmon captured from the author's own machine. No DUA, no credentialed access, no paid teacher \u2014 backtranslation runs an open-weights teacher 4-bit locally or on free Kaggle hours. Contrast MEDREC-IR, whose only honest evidence sits behind a PhysioNet DUA that forbids redistribution. |\n| (c) Deterministic, rigorous eval | **Strongest available** | Execution set-equality against an event corpus gives semantic-equivalence credit (two syntactically different rules that behave identically both pass) **and** a precision axis (`F_dec`) that almost no structured-generation portfolio project has. No LLM judge anywhere. The matcher is ~300 lines of visitor over pySigma's parsed detection objects, so the harness is hermetic and pinnable rather than hostage to a backend package version. |\n| (d) Stop-scrolling factor | **High** | Three legible claims: an eval with a false-positive axis built from single-axis mutation decoys; schema conditioning as a *measured* generalisation axis (held-out enclave profiles the model never trained on); and a quality-vs-quantization curve on a hard-gated functional metric rather than perplexity. The base-vs-tuned story is a chart, not a paragraph: recall acceptable at baseline, `F_dec` terrible, both closed after tuning. |\n| (e) Full-stack exercise | **Complete** | Data engineering (rule corpus, profile sampler, mutation decoy generator, provenance hashing) \u2192 PEFT (QLoRA r=32 on a 16GB free-tier envelope) \u2192 eval harness (parse gate, schema gate, execution gate, JSONL rows) \u2192 quantization (Q8_0/Q5_K_M/Q4_K_M/IQ4_XS with an in-domain imatrix) \u2192 serving (`llama-server` with per-request GBNF synthesised from the schema card). |\n\n## The decider\n\n**The harness has zero dependency on the model, so the project's central assumption is falsifiable in the first 48 hours.** `sigsmith.eval.run --model hf:Qwen/Qwen3-1.7B` scores the untuned base against the frozen suite before a single training step. If the base clears `E_pass`, the decoys are too easy and the decoy generator gets harder before anything else happens; that pre-committed abandon condition is in the README. MEDREC-IR needs hand-labelled real notes first; LINE-BUSTER's premise (KV prefix reuse) is answerable early but its headline claim is about burgers; SORTIE-DSL needs a SITL rig before it can score anything.\n\n**Second: the emitted artifact is a program that runs against data the model never saw.** Grammar-constrained decoding makes an out-of-card field name unreachable at the sampler rather than penalised in the loss, which converts hallucination into a measurable wrong-choice rate and leaves the consumer with exactly one failure mode to handle \u2014 semantically wrong, caught by execution.\n\n**Third: the on-prem argument is architectural, not rhetorical.** Per-deployment conditioning is a generalisation axis with a number attached (`G_delta`), not a prompt constant, and the thing being conditioned on is the artifact an organisation least wants to disclose.",
+  "runner_up_summary": "Two runners-up stay alive and must appear as candidate problem statements in Section 1 before SIGSMITH is selected.\n\n**RRULE-FORGE \u2014 natural-language recurrence \u2192 RFC 5545 VEVENT, scored by occurrence-set equality under `dateutil.rrule`.** Proposed because it has the cleanest possible functional metric: expand gold and predicted rules over a fixed horizon and compare *sets*, which makes `FREQ=MONTHLY;BYDAY=FR;BYSETPOS=-1` and `FREQ=MONTHLY;BYDAY=-1FR` correctly equal while string similarity would call them different. Its `first_divergence_index` instrument (how many occurrences the rule gets right before it breaks \u2014 k=1 versus k=47 at a DST boundary are entirely different bugs) is a metric a hiring manager remembers, and the data pipeline is a few hundred lines of grammar sampling plus interpreter calls, so it is the fastest to a first result. It loses on (a) and (e): the offline argument is real (medication schedules, custody arrangements, a phone in a hospital basement) but it is a *privacy preference plus a latency nicety*, not an air gap; there is no per-deployment conditioning axis, so the model reads a fixed grammar rather than an input schema; and the whole surface is one short JSON object, which under-exercises the serving and quantization halves of the stack.\n\n**LOGSMITH \u2014 log line \u2192 OTel semantic-convention event plus an executable named-capture regex the harness runs.** Proposed because it is the only proposal whose evaluation needs *no labels at all*: `coverage@1k` (does the emitted regex also match 1,000 other lines from the same true template) and `false_positive@1k` (does it wrongly match lines from other templates) form a precision/recall pair over an executed program in which both degenerate solutions \u2014 memorise the instance, or emit `^.*$` \u2014 are individually punished. Its systems judgement is excellent: the SLM is a compiler invoked on template-cache miss, and the compiled RE2-safe regex runs at line rate in Go. It loses on (b) and (c): roughly two weeks of unglamorous tree-sitter corpus engineering over OSS logging call sites stands between day one and a first training step, and the semconv key assignment (`server.address` vs `peer.service` vs `rpc.service`) has a genuine label-ambiguity ceiling that would have to be measured as inter-teacher kappa and annotated on every chart. SIGSMITH borrows its central idea outright \u2014 the model emits an artifact the harness executes, never a string the harness compares.",
+  "rejected_alternatives": [
+    {
+      "title": "RRULE-FORGE \u2014 NL recurrence \u2192 RFC 5545 VEVENT, scored by occurrence-set equality",
+      "kept_as_section1_candidate": true,
+      "why_not_chosen": "Cleanest functional metric of the nine and the fastest to a first result, but the offline argument is a privacy preference plus an interactive-latency nicety rather than an air gap; there is no per-deployment schema-conditioning axis, so nothing generalises beyond a fixed grammar; and a ~120-token output under-exercises the serving/quantization half of the stack."
+    },
+    {
+      "title": "LOGSMITH \u2014 log line \u2192 OTel semconv event + executable named-capture regex",
+      "kept_as_section1_candidate": true,
+      "why_not_chosen": "Best label-free eval design (coverage@1k / false_positive@1k over an executed program) and the sharpest systems judgement about where a model must NOT sit, but ~2 weeks of tree-sitter corpus engineering precede the first training step, and the semconv key assignment carries an irreducible label-ambiguity ceiling that would have to be measured and annotated on every chart. Its core idea \u2014 execute the output, never compare strings \u2014 is imported into SIGSMITH."
+    },
+    {
+      "title": "MEDREC-IR \u2014 discharge narrative \u2192 FHIR R4 medication bundle",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "The strongest evidence it can produce is evidence it cannot ship: MIMIC-IV-Note sits behind a PhysioNet DUA forbidding redistribution, so a stranger cannot reproduce the repo. The public alternative has murky licensing and the wrong genre. It also has no precision axis \u2014 slot F1 only \u2014 and its hardest risk (the model learns to invert the author's 200-rule renderer rather than read clinical text) is undetectable except on real notes that must be hand-labelled first."
+    },
+    {
+      "title": "DEADLINE-IR \u2014 contract clauses \u2192 executable temporal-obligation AST",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "Differential execution over 64 adversarial fact patterns is a genuinely novel eval contribution, and CUAD is CC BY-4.0 so the text ships. But the gold ceiling is a teacher's contested legal reading: real notice clauses are ambiguous by drafting practice, so the headline metric measures the author's annotation manual as much as the model, and 'I am not a lawyer' is a bad answer to the first interview question."
+    },
+    {
+      "title": "READBACK-GUARD \u2014 offline ATC clearance decoder for the flight deck",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "Excellent asymmetric-cost framing (false-accept on another aircraft's clearance is the only truly dangerous output) and a real abstain/risk-coverage story, but the only real-transcript tripwire (~4h ATCO2) is small, of uncertain redistribution terms, and too thin for a tight CI on the one metric that matters \u2014 and the synthetic-to-real gap only reveals itself after the model exists, on a set you deliberately cannot peek at."
+    },
+    {
+      "title": "LINE-BUSTER \u2014 per-store menu grammar \u2192 order-delta compiler at the offline POS",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "Two independent deterministic oracles (cart-tree equality and an independently written pricing engine) is unusually strong, and the schema-conditioning claim is the same one SIGSMITH makes. It loses on stop-scrolling seriousness and on data credibility: 100% synthetic with no real corpus anywhere, so the unseen-menu delta rests on a generator whose realism cannot be externally audited, and the offline necessity is contractual/economic rather than physical."
+    },
+    {
+      "title": "SORTIE-DSL \u2014 NL tasking \u2192 SITL-validated behavior tree for link-denied UAS",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "The strongest grader in principle (closed-loop PX4/ArduPilot SITL), but seconds-to-minutes of wall clock per case, a fragile toolchain, and nondeterminism without verified lockstep make it unrunnable per-checkpoint for one engineer. It is also two projects (tasking compiler + contingency re-planner) wearing one coat, and its own author says the latency arm of the lens does not apply."
+    },
+    {
+      "title": "DESCRIPTOR-IR \u2014 payment descriptors \u2192 span-grounded canonical ledger records",
+      "kept_as_section1_candidate": false,
+      "why_not_chosen": "Span grounding (every extracted string must be provably a substring at the offsets the model itself declared) is the single best idea in the nine and is imported into SIGSMITH's future work, but the real-data leg is the author's own bank statements \u2014 small, single-metro, non-redistributable \u2014 and the author concedes canonicalisation is memorisation-bound, which shrinks the ML surface to segmentation a strong regex baseline may already cover."
+    }
+  ],
+  "task_io": {
+    "input_description": "A single user turn under a frozen system prompt (system prompt text is hashed into `config_sha256`). The turn carries three blocks in fixed order. (1) `<SCHEMA>` \u2014 the deployment's telemetry schema card: one or more `logsource:` lines (`category=`, `product=`, optional `service=`) each followed by the exact field names that deployment collects. This is the conditioning input the whole project turns on; field vocabularies differ per enclave profile, and the eval profiles are disjoint from the training profiles. Cards are 6\u201340 fields, 120\u2013900 tokens. (2) `<REQUEST>` \u2014 a natural-language behaviour description written for humans by humans: MITRE ATT&CK technique prose or an Atomic Red Team test description at eval time; a teacher backtranslation of a SigmaHQ rule at train time only (split enforced in code). Requests routinely name a benign near-miss that must NOT fire, which is what forces a filter clause. (3) `<EVENT_SAMPLE>` \u2014 0\u20133 example event records as flat JSON, present in ~60% of examples, absent in the rest so the model cannot depend on them. Chat template is applied with `enable_thinking=False` (Qwen3 emits `<think>` blocks otherwise, which the grammar would reject mid-stream).",
+    "output_description": "Exactly one JSON object, no prose, emitted under a GBNF grammar compiled per request from the Pydantic IR model *and that request's schema card* \u2014 so every field base-name is a grammar terminal drawn from the card and an out-of-card field is unreachable at the sampler rather than penalised in the loss. Deliberately NOT raw YAML: YAML grammars are miserable to constrain (indentation, flow vs block, quoting) and a deterministic serialiser gives canonical key order, which makes rule diffs reviewable. `src/sigsmith/ir/serialize.py` expands the IR to canonical Sigma YAML (sorted keys, LF, block style, no anchors/aliases). Typical emission is 180\u2013520 tokens. The `unsupported` array is the abstention channel: when the described behaviour cannot be expressed against the supplied card (the telemetry simply is not collected), the correct output names the missing capability instead of inventing a field, and that channel is scored separately as `U_prec` / `U_rec`.",
+    "output_json_schema_sketch": "```python\n# src/sigsmith/ir/models.py \u2014 Pydantic v2; model_json_schema() -> GBNF via tools/build_ir_grammar.py\nModifier = Literal[\"contains\",\"startswith\",\"endswith\",\"all\",\"re\",\"base64offset\",\"windash\",\"cased\"]\n\nclass SelectionTerm(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")   # extra keys are a training bug, not slack\n    field: str                 # grammar terminal: alternation over THIS card's fields\n    modifiers: list[Modifier] = []\n    values: list[str | int]    # list == OR; |all modifier == AND\n\nclass LogSource(BaseModel):\n    category: str; product: str; service: str | None = None\n\nclass Detection(BaseModel):\n    selections: dict[str, list[SelectionTerm]]   # keys match ^(sel|filter)_[a-z0-9_]{1,24}$\n    condition: str                               # restricted subset; excluded constructs listed in docs/DSL_SUBSET.md\n\nclass Unsupported(BaseModel):\n    reason: Literal[\"FIELD_NOT_COLLECTED\",\"LOGSOURCE_ABSENT\",\"NOT_EXPRESSIBLE_IN_SIGMA\"]\n    detail: str\n\nclass RuleIR(BaseModel):\n    model_config = ConfigDict(extra=\"forbid\")\n    title: str = Field(max_length=96)\n    logsource: LogSource\n    detection: Detection\n    level: Literal[\"informational\",\"low\",\"medium\",\"high\",\"critical\"]\n    tags: list[str] = []            # ^attack\\.(t\\d{4}(\\.\\d{3})?|[a-z-]+)$\n    falsepositives: list[str] = []\n    unsupported: list[Unsupported] = []\n\n    @model_validator(mode=\"after\")\n    def _closed_world(self):\n        # every selection referenced by `condition` must exist; every field must be on the card\n        ...\n```",
+    "worked_example_input": "```\n<SCHEMA>\nlogsource: category=process_creation product=windows\nfields: Image, OriginalFileName, CommandLine, ParentImage, ParentCommandLine, User, IntegrityLevel, CurrentDirectory\nlogsource: category=network_connection product=windows\nfields: Image, DestinationIp, DestinationPort, Initiated, User\n</SCHEMA>\n<REQUEST>\nCredential dumping where LSASS memory is dumped by invoking the MiniDump export in\ncomsvcs.dll through rundll32. Flag it. Our backup agent legitimately calls rundll32\nwith comsvcs for COM+ maintenance, running as NT AUTHORITY\\SYSTEM.\n</REQUEST>\n<EVENT_SAMPLE>\n{\"Image\":\"C:\\\\Windows\\\\System32\\\\rundll32.exe\",\"CommandLine\":\"rundll32.exe C:\\\\windows\\\\system32\\\\comsvcs.dll, MiniDump 644 C:\\\\temp\\\\l.dmp full\",\"ParentImage\":\"C:\\\\Windows\\\\System32\\\\cmd.exe\",\"User\":\"CORP\\\\jdoe\"}\n</EVENT_SAMPLE>\n```",
+    "worked_example_output": "```json\n{\"title\":\"LSASS Memory Dump via comsvcs.dll MiniDump\",\n \"logsource\":{\"category\":\"process_creation\",\"product\":\"windows\",\"service\":null},\n \"detection\":{\n   \"selections\":{\n     \"sel_img\":[{\"field\":\"Image\",\"modifiers\":[\"endswith\"],\"values\":[\"\\\\rundll32.exe\"]}],\n     \"sel_cmd\":[{\"field\":\"CommandLine\",\"modifiers\":[\"contains\",\"all\"],\"values\":[\"comsvcs\",\"MiniDump\"]}],\n     \"filter_backup\":[{\"field\":\"ParentImage\",\"modifiers\":[\"endswith\"],\"values\":[\"\\\\backupagent.exe\"]},\n                      {\"field\":\"User\",\"modifiers\":[\"startswith\"],\"values\":[\"NT AUTHORITY\"]}]},\n   \"condition\":\"all of sel_* and not filter_backup\"},\n \"level\":\"high\",\n \"tags\":[\"attack.credential-access\",\"attack.t1003.001\"],\n \"falsepositives\":[\"COM+ maintenance by the backup agent\"],\n \"unsupported\":[]}\n```\nThe gate sequence for this row: `P_lint` (pySigma parses the serialised YAML) \u2192 `C_schema` (Image, CommandLine, ParentImage, User all appear on the card) \u2192 execution: the k_pos malicious events fire (`R_pos`=1.0) and the mutation decoys \u2014 same command line under `backupagent.exe`/SYSTEM, `procdump.exe` doing the same dump, `comsvcs` with a non-MiniDump export, reordered args, different casing \u2014 do not (`F_dec`=0.0), so `E_pass`=1. Dropping `filter_backup` keeps `R_pos`=1.0 and pushes `F_dec` up; that is precisely the base-model failure this project exists to close."
+  },
+  "base_model": "Qwen/Qwen3-1.7B",
+  "base_model_rationale": "**Licence first.** Apache-2.0, so merged weights and the GGUF can be published in a public portfolio repo with no community-licence footnote and no acceptable-use rider \u2014 which matters because the deliverable *is* the artifact, not just the code.\n\n**Size chosen against the deployment envelope, not against a leaderboard.** At Q4_K_M a 1.7B is roughly 1.0\u20131.2 GB of weights (arithmetic from parameter count, not a measurement), which leaves a schema card, request, KV cache and the grammar stack comfortably inside a 16 GB unified-memory laptop or a 4 GB-class SOC collector VM while sharing the box with other tooling. A 3B doubles the resident cost to buy capability the grammar already supplies.\n\n**Task shape fits a small model.** The output is a closed vocabulary \u2014 field names supplied per request, eight modifiers, five levels, a restricted `condition` subset. Nothing here requires world knowledge; it requires reading a card and composing set semantics. That is exactly what LoRA on a small instruct model is good at, and exactly where a frontier model's memorisation of the public SigmaHQ field vocabulary becomes the failure mode rather than the advantage.\n\n**Two live caveats, stated rather than bluffed.** (1) Qwen3 dense checkpoints ship a hybrid thinking mode; every prompt render must pass `enable_thinking=False` to `apply_chat_template`, and `tests/test_chat_template.py` asserts on the rendered-template SHA so a tokenizer-repo update cannot silently reintroduce `<think>` blocks that the GBNF would reject mid-stream. (2) Exact HF repo ids and revisions move \u2014 every id in `configs/model/*.yaml` carries a pinned `revision:` commit hash, and `sigsmith.data.fetch` fails loudly rather than resolving `main`.\n\n**Fallback arm if the primary underfits:** `Qwen/Qwen2.5-Coder-1.5B-Instruct` (also Apache-2.0) is pre-registered as the comparison base, on the hypothesis that code-pretraining transfers to modifier composition and condition syntax; it is run as one point on the ladder, not swapped in silently.",
+  "model_ladder": [
+    "Qwen/Qwen3-0.6B \u2014 latency/size floor. Establishes whether the task is learnable at all below 1B and gives the left-hand point of the capability-vs-cost curve on CPU-X86, where a 0.6B Q4_K_M is the only candidate that stays interactive without AVX-512.",
+    "Qwen/Qwen3-1.7B \u2014 PRIMARY. Every headline number, every quantization arm, every hardware profile, and the deployed GGUF come from this model unless explicitly labelled otherwise.",
+    "Qwen/Qwen2.5-Coder-1.5B-Instruct \u2014 pre-registered base-choice ablation at roughly matched size, testing whether code pretraining buys modifier composition and condition syntax. One training run, same data, same seed, reported as a single row.",
+    "Qwen/Qwen3-4B \u2014 headroom probe, one run only, to answer 'how much E_pass is left on the table at 2.4x the parameters' and to bound the claim. Trained on GPU-L4; not part of the deployment story, and never used to backfill a headline number."
+  ],
+  "dataset_name": "SIGSMITH-DETECT-v1",
+  "dataset_sources": [
+    "SigmaHQ/sigma rules corpus (~3k expert-written rules) \u2014 Detection Rule License 1.1. Role: gold output side for the backtranslation split. NOTE: DRL terms are permissive about use and modification with attribution but must be read before redistributing derived data; `docs/LICENSES.md` records the verification and the repo ships a fetch script plus commit pin, not a vendored copy.",
+    "MITRE ATT&CK Enterprise STIX bundle (mitre-attack/attack-stix-data) \u2014 ATT&CK Terms of Use, attribution required. Role: technique prose becomes the EVAL request side, written by humans for other reasons and never derived from any rule text.",
+    "redcanaryco/atomic-red-team \u2014 MIT. Role: authentic test descriptions (eval request side) plus concrete attacker command lines used to synthesise positive events, joined to rules by ATT&CK technique id.",
+    "OTRF/Security-Datasets and sbousseaden/EVTX-ATTACK-SAMPLES \u2014 per-repo licence verified in docs/LICENSES.md before use. Role: real captured Windows telemetry for the frozen real-EVTX eval slice and for a decoy pool that is NOT derived from the gold rule.",
+    "Self-captured Sysmon from the author's own workstation (config: SwiftOnSecurity baseline, ~10^6\u201310^7 events) \u2014 author's own data, shipped as aggregate counts only, never as raw events. Role: the `FP_M` benign false-positive probe, the closest free proxy for operational precision.",
+    "Enclave-profile sampler (repo-authored, project licence) \u2014 30 synthetic deployment profiles with deliberately different field coverage, split 22 train / 8 frozen-eval by SHA-256 of the profile seed so leakage is structurally impossible rather than policed. This is the component that teaches schema-reading instead of field memorisation.",
+    "Open-weights teacher for backtranslation only (Qwen3-32B-class or Llama-3.3-70B-class, 4-bit, run locally overnight or on free Kaggle GPU hours; licence verified at fetch) \u2014 rule \u2192 NL request. TRAINING SPLIT ONLY, enforced in `sigsmith.data.split` and asserted in CI; the teacher never produces a label and never touches the eval suite."
+  ],
+  "target_dataset_size": "~38,000 train pairs / 2,000 dev pairs / 1,200 frozen eval examples. Train composition, fixed in `configs/data/v1_schema_mix.yaml`: 60% grammar-sampled IR rendered against the 22 training enclave profiles (this is what teaches card-reading), 25% SigmaHQ rules backtranslated to NL requests by the open-weights teacher, 15% adversarial/abstention examples (behaviour that cannot be expressed against the supplied card \u2192 `unsupported`; near-miss requests that require a filter clause). Each example ships k_pos \u2208 [2,6] positive events and k_neg \u2208 [8,24] mutation decoys, so the corpus carries roughly 4\u00b710^5 event records at ~180 MB JSONL. Eval: 1,200 examples over the 8 held-out profiles, requests sourced only from ATT&CK technique prose and Atomic Red Team descriptions joined by technique id, plus a 150-example frozen real-EVTX slice whose decoys come from captured telemetry rather than from mutation. Sizing rationale: at ~1.4k tokens/example and seq_len 4096, 38k pairs is ~2 GPU-days on free-tier hardware for 2 epochs, which is the real budget constraint; below ~20k the 8-profile generalisation gap is dominated by variance.",
+  "metrics": [
+    {
+      "name": "Rule parse and lint rate",
+      "symbol": "P_lint",
+      "definition": "Fraction of emissions where `src/sigsmith/ir/serialize.py` output is accepted by `sigma.rule.SigmaRule.from_dict` (pySigma) and passes the repo's structural validator (every selection referenced by `condition` exists; condition parses under the documented subset). Binary per example, reported as a rate. Measured with the grammar ON (deployment path) and OFF (`V_free`, below).",
+      "why_it_matters": "The hard gate every other metric is conditional on. With the grammar on it should sit at or near 1.0 even for the untuned base \u2014 and saying so up front is the point: schema validity is free, semantic correctness is what fine-tuning buys, and the whole scientific content of the repo lives in the gap between those two."
+    },
+    {
+      "name": "Schema conformance rate",
+      "symbol": "C_schema",
+      "definition": "Fraction of emissions in which every referenced field base-name and every logsource tuple exists on the schema card supplied in that request. Reported separately on the 22 training profiles and the 8 frozen held-out profiles.",
+      "why_it_matters": "The direct measurement of whether the model reads the card or recalls the public SigmaHQ field vocabulary. Under per-request GBNF this is enforced at the sampler, so `C_schema` is scored on the grammar-off arm to prove the model *learned* the behaviour rather than having it imposed."
+    },
+    {
+      "name": "Positive recall",
+      "symbol": "R_pos",
+      "definition": "|fired \u2229 pos| / |pos| \u2014 the fraction of that example's k_pos labelled malicious events matched by the compiled predicate produced by `src/sigsmith/exec/matcher.py`.",
+      "why_it_matters": "The coverage half of detection engineering. Alone it is trivially gamed by a broad rule, which is exactly the failure mode a helpful frontier model exhibits, so it is never reported without F_dec."
+    },
+    {
+      "name": "Decoy false-positive rate",
+      "symbol": "F_dec",
+      "definition": "|fired \u2229 neg| / |neg| over that example's k_neg single-axis mutation decoys (swap parent process, change user/integrity level, substitute a legitimate tool achieving the same effect, reorder arguments, change casing, alter path prefix). Lower is better; the taxonomy is published in `docs/DECOY_TAXONOMY.md` so a reviewer can judge whether the negatives are hard.",
+      "why_it_matters": "The precision axis, and the reason to pick this project. Almost every structured-generation portfolio project measures 'is the output correct'; this measures 'is it tight'. It is also the metric with the biggest expected base-vs-tuned delta, because a base model reliably omits the filter clause entirely."
+    },
+    {
+      "name": "Execution pass (headline)",
+      "symbol": "E_pass",
+      "definition": "Per example: `P_lint \u2227 C_schema \u2227 (R_pos == 1.0) \u2227 (F_dec == 0.0)`. Reported as a rate over the frozen eval suite with a bootstrap 95% CI (10,000 resamples, seed 1337) \u2014 point estimates alone are banned by the harness.",
+      "why_it_matters": "The single number the README leads with, and it is hard-gated rather than averaged, so partial credit cannot launder a rule that would page a human at 3am. Semantically different but behaviourally identical rules both pass, which is correct."
+    },
+    {
+      "name": "Held-out-profile generalisation gap",
+      "symbol": "G_delta",
+      "definition": "E_pass on the 22 training enclave profiles minus E_pass on the 8 frozen held-out profiles, same requests where the join permits.",
+      "why_it_matters": "The project's transferable research-shaped claim: a small model compiling against a schema supplied at inference time, measured on schemas it has never seen. A near-zero gap is the result; a large gap is an honest negative result about schema-conditioned generalisation and still worth publishing."
+    },
+    {
+      "name": "Benign false positives per million real events",
+      "symbol": "FP_M",
+      "definition": "Firing count of each emitted rule replayed over the author's captured benign Sysmon stream, normalised to 10^6 events. Reported per rule and as a distribution (median, p90, max), never as a mean.",
+      "why_it_matters": "The closest free proxy for operational precision, and the answer to the project's own hardest risk \u2014 that mutation decoys generated from the gold rule are systematically easier than real high-volume benign traffic. A rule can score E_pass=1 and still be unshippable; FP_M is what catches that."
+    },
+    {
+      "name": "Abstention precision / recall",
+      "symbol": "U_prec / U_rec",
+      "definition": "Precision and recall of the `unsupported` channel over the adversarial eval slice where the described behaviour is genuinely not expressible against the supplied card (telemetry not collected, logsource absent, construct outside Sigma).",
+      "why_it_matters": "A model that never abstains can look excellent on E_pass while being operationally dangerous \u2014 it invents a field the enclave does not collect and the rule silently never fires. Scoring refusal as a first-class typed outcome, not a vibe, is what separates people who have shipped detection content from people who have read about it."
+    },
+    {
+      "name": "Free-decode structural validity",
+      "symbol": "V_free",
+      "definition": "P_lint measured with GBNF constraints disabled, everything else identical (`--grammar off` arm of `sigsmith.eval.run`).",
+      "why_it_matters": "Separates 'the model learned the format' from 'the decoder enforced it'. The V_free base-vs-tuned delta is the honest accounting of what SFT actually taught, and reporting it pre-empts the sharpest question an interviewer can ask about constrained decoding."
+    },
+    {
+      "name": "Quantization damage",
+      "symbol": "\u0394_Q(q)",
+      "definition": "E_pass at quantization level q \u2208 {Q8_0, Q5_K_M, Q4_K_M, IQ4_XS} minus E_pass at F16, same seed, same suite, same grammar, with and without an in-domain imatrix (`llama-imatrix` calibrated on schema cards + rule text, not wikitext).",
+      "why_it_matters": "Nearly everyone publishes perplexity vs quantization. Running a hard-gated functional metric at each level answers a question perplexity cannot: whether 4-bit rounding produces syntactically perfect, semantically empty rules \u2014 which under grammar constraint is exactly the failure shape to expect."
+    },
+    {
+      "name": "Time to first token, p50",
+      "symbol": "T_ttft",
+      "definition": "Milliseconds from request submission to first sampled token at bs=1, temp 0, per hardware profile and quant level, over 200 warm iterations after 20 discarded warm-ups; the schema card is a stable per-deployment prefix, so the harness reports warm (prefix-cached) and cold separately.",
+      "why_it_matters": "Detection engineering is an iterate-and-tune inner loop \u2014 write, replay, see the FPs, tighten, re-run \u2014 so prefill cost against a 900-token card is the number that decides whether the tool is usable, and it is the number a cloud endpoint cannot bound."
+    },
+    {
+      "name": "Decode throughput and end-to-end p95",
+      "symbol": "D_tps / L_p95",
+      "definition": "Sampled tokens/second and end-to-end wall-clock p95 for a complete rule emission, per hardware profile, per quant level, grammar on and grammar off (the grammar's cost against a several-hundred-branch field alternation is itself a reported number).",
+      "why_it_matters": "A throughput figure without the accuracy it cost is marketing, so D_tps is always printed beside \u0394_Q in the same table. The grammar-on/grammar-off delta is the one that decides whether per-request GBNF synthesis is affordable or whether the field vocabulary must be indexed and expanded in the shim."
+    }
+  ],
+  "repo_name": "sigsmith",
+  "python_package_name": "sigsmith",
+  "canonical_paths": [
+    "/Users/sid/Claude/sigsmith/pyproject.toml",
+    "/Users/sid/Claude/sigsmith/README.md",
+    "/Users/sid/Claude/sigsmith/configs/model/qwen3_1p7b.yaml",
+    "/Users/sid/Claude/sigsmith/configs/train/qwen3_1p7b_qlora_r32.yaml",
+    "/Users/sid/Claude/sigsmith/configs/data/v1_schema_mix.yaml",
+    "/Users/sid/Claude/sigsmith/configs/serve/llama_server_q4km.yaml",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/config.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/provenance.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/logging_json.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/ir/models.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/ir/grammar.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/ir/serialize.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/fetch.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/profiles.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/sample_ir.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/backtranslate.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/events.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/decoys.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/build.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/data/split.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/training/train_sft.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/training/collator.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/training/memory.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/training/determinism.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/exec/matcher.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/exec/replay.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/eval/harness.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/eval/metrics.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/eval/run.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/eval/bootstrap.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/quantize/export_gguf.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/quantize/imatrix.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/serve/client.py",
+    "/Users/sid/Claude/sigsmith/src/sigsmith/serve/bench.py",
+    "/Users/sid/Claude/sigsmith/eval/ROW_SCHEMA.json",
+    "/Users/sid/Claude/sigsmith/eval/suites/holdout_profiles.yaml",
+    "/Users/sid/Claude/sigsmith/eval/suites/frozen_real_evtx.yaml",
+    "/Users/sid/Claude/sigsmith/eval/suites/abstention.yaml",
+    "/Users/sid/Claude/sigsmith/bench/hardware_profiles.yaml",
+    "/Users/sid/Claude/sigsmith/docs/DECOY_TAXONOMY.md",
+    "/Users/sid/Claude/sigsmith/docs/DSL_SUBSET.md",
+    "/Users/sid/Claude/sigsmith/docs/LICENSES.md",
+    "/Users/sid/Claude/sigsmith/tools/llama_cpp.lock",
+    "/Users/sid/Claude/sigsmith/tests/test_matcher_properties.py",
+    "/Users/sid/Claude/sigsmith/tests/test_chat_template.py",
+    "/Users/sid/Claude/sigsmith/runs/README.md"
+  ],
+  "hardware_profiles": [
+    "EDGE-M5: Apple M5, 16 GB unified memory, macOS 27, llama.cpp Metal backend at the commit pinned in tools/llama_cpp.lock. PRIMARY DEPLOYMENT TARGET \u2014 every T_ttft, D_tps, L_p95 and every \u0394_Q number in the README comes from this profile unless a row says otherwise. Also the quantize-and-profile host; it is NOT a training box (16 GB unified means MLX-only, batch-limited experiments).",
+    "GPU-T4: Kaggle free tier, 2x NVIDIA T4 16 GB (Turing, sm_75). PRIMARY TRAINING PROFILE for the 0.6B and 1.7B runs. Turing has no bf16 datapath, so training is fp16 with grad scaling and the config asserts on capability rather than silently downcasting; per-run session limits are why every run is checkpoint-resumable and every config is hash-addressed.",
+    "GPU-L4: Colab free/low-cost tier, 1x NVIDIA L4 24 GB (Ada, sm_89, bf16 native). Used for the Qwen3-4B headroom probe and as the bf16-vs-fp16 control on the 1.7B primary, so any Turing-specific numerical artifact is visible rather than assumed absent.",
+    "CPU-X86: 8-core Intel Xeon (Cascade Lake class), AVX2 only, no AVX-512, 32 GB DDR4, no GPU. Stands in for the realistic air-gapped SOC collector VM or accredited workstation. This is the profile that decides whether the tool is deployable where the story says it is deployable, and it is the only profile where the 0.6B ladder point may be the shippable one; all four quant levels are benchmarked here even where the result is unflattering."
+  ],
+  "hero_claim_templates": [
+    "A <MEASURED:param_count_b>B model, QLoRA-tuned on SIGSMITH-DETECT-v1 and quantized to Q4_K_M (<MEASURED:gguf_bytes_q4km> on disk), reaches E_pass = <MEASURED:e_pass_ft_q4km> [<MEASURED:e_pass_ft_q4km_ci_lo>, <MEASURED:e_pass_ft_q4km_ci_hi>] on 1,200 held-out detection tasks, against E_pass = <MEASURED:e_pass_base_q4km> for the same base model under the identical grammar.",
+    "Fine-tuning moved coverage barely and precision decisively: R_pos went <MEASURED:r_pos_base> -> <MEASURED:r_pos_ft> while the decoy false-positive rate F_dec fell <MEASURED:f_dec_base> -> <MEASURED:f_dec_ft> \u2014 the base model writes rules that fire, not rules that discriminate.",
+    "On enclave profiles never seen in training, schema conformance is C_schema = <MEASURED:c_schema_heldout> with the grammar disabled, and the generalisation gap is G_delta = <MEASURED:g_delta> \u2014 the model reads the deployment's field vocabulary rather than recalling SigmaHQ's.",
+    "Quantization damage on a hard-gated functional metric, not perplexity: Delta_Q = <MEASURED:delta_q_q8_0> / <MEASURED:delta_q_q5km> / <MEASURED:delta_q_q4km> / <MEASURED:delta_q_iq4xs> E_pass points versus F16, with an in-domain imatrix worth <MEASURED:delta_q_imatrix_gain> points at Q4_K_M.",
+    "On EDGE-M5 at Q4_K_M with a warm schema-card prefix, T_ttft(p50) = <MEASURED:ttft_p50_m5_q4km> ms and D_tps = <MEASURED:decode_tps_m5_q4km> tok/s, putting a complete rule emission at L_p95 = <MEASURED:e2e_p95_m5_q4km> s inside the write-replay-tighten loop.",
+    "Per-request GBNF synthesised from the schema card costs <MEASURED:grammar_tps_penalty_pct>% of decode throughput and buys P_lint = <MEASURED:p_lint_grammar_on>; with the grammar off the tuned model still emits structurally valid rules at V_free = <MEASURED:v_free_ft> versus <MEASURED:v_free_base> for the base \u2014 the format was learned, not merely enforced.",
+    "Replayed over <MEASURED:benign_event_count> benign Sysmon events captured from a live workstation, the tuned model's rules fire at a median FP_M = <MEASURED:fp_m_median> and p90 FP_M = <MEASURED:fp_m_p90> per million events.",
+    "The abstention channel is calibrated rather than decorative: on requests describing behaviour the supplied schema card cannot express, U_prec = <MEASURED:u_prec_ft> and U_rec = <MEASURED:u_rec_ft>, against U_rec = <MEASURED:u_rec_base> for the base model, which essentially never declines.",
+    "Trained inside a free-tier envelope: peak <MEASURED:peak_vram_train_gb> GB VRAM on GPU-T4 across <MEASURED:train_wallclock_h> GPU-hours, with every checkpoint and every eval row stamped with git_sha, config_sha256 and data_sha256.",
+    "On CPU-X86 (AVX2, no AVX-512, no GPU) the deployed Q4_K_M artifact sustains D_tps = <MEASURED:decode_tps_cpux86_q4km> tok/s at L_p95 = <MEASURED:e2e_p95_cpux86_q4km> s \u2014 the profile that decides whether the air-gapped story is real."
+  ],
+  "naming_conventions": [
+    "Repo root is /Users/sid/Claude/sigsmith; the import package is `sigsmith` and every module is addressed as `python -m sigsmith.<subpkg>.<mod>`. No argparse soup: every entry point takes `--config <path>` plus zero or more `--override dotted.key=value`, both resolved into a single frozen Pydantic v2 model in src/sigsmith/config.py.",
+    "Metric symbols are canonical and identical in code, configs, JSONL rows, tables and prose: P_lint, C_schema, R_pos, F_dec, E_pass, G_delta, FP_M, U_prec, U_rec, V_free, Delta_Q(q), T_ttft, D_tps, L_p95. JSONL field names are the lowercase snake_case form (`e_pass`, `f_dec`, `t_ttft_ms`). No section may invent a synonym.",
+    "`config_sha256` = sha256 over the canonical JSON of `Config.model_dump()` with sorted keys; `data_sha256` = sha256 over the sorted (shard_path, blake3) manifest; both plus `git_sha` and `git_dirty` are stamped into every checkpoint directory and every eval row. An eval row that cannot name the exact bytes that produced it is dropped by the aggregator, and `git_dirty: true` marks a row untrusted.",
+    "Run directories are runs/<utc_iso8601_compact>-<config_sha8>/ containing provenance.json, train.jsonl, eval-<quant>.jsonl, latency.jsonl. Structured logging only, one JSON object per line, one row schema defined in eval/ROW_SCHEMA.json; `print()` is banned and CI greps for it.",
+    "GGUF artifacts are named out/sigsmith-<base_short>-<train_sha8>-<QUANT>.gguf (e.g. out/sigsmith-qwen3-1p7b-a1b2c3d4-Q4_K_M.gguf); the F16 intermediate keeps -F16. Every published number names its file, and tools/llama_cpp.lock pins the llama.cpp commit because binary names moved in the llama-* tool reorg.",
+    "Enclave profiles are `PROF-<two-digit>` (PROF-01..PROF-30); PROF-23..PROF-30 are the frozen held-out set, and the train/eval assignment is derived from sha256(profile_seed) in src/sigsmith/data/split.py so the split is structural rather than policed.",
+    "Eval example ids are `<technique_id>-<nn>` lowercased (e.g. t1003.001-07) and are stable across suite revisions; a changed example gets a new id rather than an edited one.",
+    "Selection keys inside the IR match ^(sel|filter)_[a-z0-9_]{1,24}$ \u2014 the sel_/filter_ prefix split is what makes `all of sel_* and not filter_*` expressible in the restricted condition subset.",
+    "Every hyperparameter in configs/ carries a one-clause `# why:` comment on the same line or immediately above; CI fails a config whose keys are not fully annotated. Placeholders in prose are always <MEASURED:snake_case_token> and never a number; expectations are prefixed 'Expectation, not a result:' with the reasoning attached.",
+    "Sections cite hardware by profile name only \u2014 EDGE-M5, GPU-T4, GPU-L4, CPU-X86 \u2014 defined once in bench/hardware_profiles.yaml, never re-described inline."
+  ],
+  "non_goals": [
+    "Not a threat-intelligence report summariser, an alert triager, a SOC copilot, or anything conversational. One turn in, one JSON object out, no dialogue state.",
+    "Not a claim that the model replaces a detection engineer. The emitted rule is a proposal that a human reviews; the harness is the guarantee and the span from IR to production sensor always passes through a person.",
+    "Not a Sigma backend. The repo compiles the parsed detection to a Python predicate for evaluation only; it does not emit Splunk SPL, KQL, Elastic DSL, or any vendor query language, and does not depend on a pySigma backend package existing at a specific version.",
+    "No RLHF, DPO, GRPO, or any preference-optimisation stage in v1. SFT with completion-only loss masking under a grammar is the whole training story; execution-feedback RL is named as future work with its reward-hacking risk stated, not shipped.",
+    "No agent loop, no tool calling, no retrieval over a rule corpus at inference. Retrieval would confound the schema-conditioning claim, which is the project's transferable result.",
+    "Full Sigma coverage is explicitly out of scope. The supported condition subset and the excluded constructs (correlation rules, `1 of` with counts, near-aggregations, timeframes) are enumerated in docs/DSL_SUBSET.md; unsupported constructs are declined via the `unsupported` channel rather than silently dropped.",
+    "No multi-platform telemetry in v1: Windows process_creation and network_connection logsources only. Linux auditd and cloud audit logs are a v2 axis, named so a reviewer can see the boundary was chosen rather than missed.",
+    "No redistribution of any corpus. The repo ships fetch scripts, commit pins and checksum manifests; the benign Sysmon capture is published as aggregate FP_M statistics only, never as raw events.",
+    "No production deployment claim, no accreditation claim, no ATO. The ATO argument is why frozen weights matter architecturally; the repo does not assert it has been through one.",
+    "No comparison against a frontier API as a quality baseline in the headline table. A frontier model may appear as a labelled accuracy ceiling in an appendix; it is not the thing being beaten, because the claim is availability and determinism at a cost profile it cannot reach, not superiority."
+  ]
+}
